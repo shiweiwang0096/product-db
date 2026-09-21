@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>组合类产品行业数据库 · 产品库</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">组合类产品行业数据库</div>
+  <nav>
+    <a href="index.html" class="active">产品库</a>
+    <a href="institution.html">机构总结</a>
+  </nav>
+  <div class="meta" id="meta">数据加载中…</div>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="filters">
+      <label>产品类型
+        <select id="f-type"><option value="">全部</option></select>
+      </label>
+      <label>产品管理人
+        <select id="f-mgr"><option value="">全部</option></select>
+      </label>
+      <label>产品类别标识
+        <select id="f-cat"><option value="">全部</option></select>
+      </label>
+      <label>关键词搜索（产品名）
+        <input id="f-keyword" placeholder="输入产品名称关键词，回车定位高亮（不筛选）" />
+      </label>
+      <button class="btn" id="btn-reset">重置筛选</button>
+    </div>
+    <div class="search-hint" id="search-hint" style="display:none;font-size:12px;color:#2F6FED;margin-top:8px;"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="k">当前筛选产品数</div><div class="v" id="s-count">-</div></div>
+    <div class="stat"><div class="k">覆盖机构数</div><div class="v" id="s-mgr">-</div></div>
+    <div class="stat"><div class="k">产品类型</div><div class="v" id="s-type">-</div></div>
+  </div>
+
+  <div class="card">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th data-key="__idx">序号<span class="arrow"></span></th>
+            <th data-key="name">产品全称<span class="arrow"></span></th>
+            <th data-key="type">产品类型<span class="arrow"></span></th>
+            <th data-key="mgr">产品管理人<span class="arrow"></span></th>
+            <th data-key="cat">类别标识<span class="arrow"></span></th>
+            <th data-key="est">成立时间<span class="arrow"></span></th>
+            <th data-key="scale" class="num">最新规模(亿元)<span class="arrow"></span></th>
+            <th data-key="scale_begin" class="num">年初规模(亿元)<span class="arrow"></span></th>
+            <th data-key="scale_chg" class="num">今年规模变化(亿元)<span class="arrow"></span></th>
+            <th data-key="yield_ytd" class="num">今年以来收益率(%)<span class="arrow"></span></th>
+            <th data-key="monthly_last" class="num">最新月度收益(%)<span class="arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <button id="pg-prev">上一页</button>
+      <span class="info" id="pg-info">-</span>
+      <button id="pg-next">下一页</button>
+      <span class="info" style="margin-left:auto;">点击表头可排序（升/降/恢复）</span>
+    </div>
+  </div>
+
+</div>
+
+<script src="lib/echarts.min.js"></script>
+<script src="js/product_detail.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>组合类产品行业数据库 · 机构总结</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">组合类产品行业数据库</div>
+  <nav>
+    <a href="index.html">产品库</a>
+    <a href="institution.html" class="active">机构总结</a>
+  </nav>
+  <div class="meta" id="meta">数据加载中…</div>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="filters">
+      <label>选择产品管理人
+        <select id="f-mgr"><option value="">请选择机构</option></select>
+      </label>
+      <button class="btn ghost" id="btn-reset">回到机构总览</button>
+    </div>
+  </div>
+
+  <!-- 机构总览（30 家一览） -->
+  <div id="overview">
+    <div class="section-title">机构一览（规模 / 只数 / 今年以来表现）</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>序号</th><th>机构名称</th><th class="num">产品只数</th>
+            <th class="num">最新规模(亿元)</th><th class="num">年初规模(亿元)</th>
+            <th class="num">今年规模变化(亿元)</th><th class="num">平均收益率(%)</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="ov-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 单机构详情 -->
+  <div id="detail" style="display:none;">
+    <div class="inst-head">
+      <h2 id="d-name">-</h2>
+      <button class="btn ghost" id="btn-back">← 返回总览</button>
+    </div>
+
+    <div class="kpi-grid" id="d-kpi"></div>
+
+    <div class="card">
+      <div class="chart-grid">
+        <div class="chart-box">
+          <h3>月度总规模趋势（亿元）</h3>
+          <div class="chart" id="c-trend"></div>
+        </div>
+        <div class="chart-box">
+          <h3>最新规模构成（按产品类型，亿元）</h3>
+          <div class="chart" id="c-pie"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">明星产品 · 规模增长快（今年规模增量 TOP）</div>
+    <div class="prod-grid" id="d-star-scale"></div>
+
+    <div class="section-title">明星产品 · 业绩持续好（今年以来整体表现佳）</div>
+    <div class="prod-grid" id="d-star-perf"></div>
+
+    <div class="section-title">重点变化产品（规模下降显著 / 业绩明显走弱）</div>
+    <div class="prod-grid" id="d-keychg"></div>
+  </div>
+
+</div>
+
+<script src="lib/echarts.min.js"></script>
+<script src="js/product_detail.js"></script>
+<script src="js/institution.js"></script>
+</body>
+</html>
