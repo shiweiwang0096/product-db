@@ -211,21 +211,42 @@
   els.reset.addEventListener("click", backToList);
   els.back.addEventListener("click", backToList);
 
-  /* ---------- 加载 ---------- */
+  /* ---------- 加载（Supabase 云端优先，失败回退本地 JSON） ---------- */
   var productIndex = {};   // 产品名 → 完整产品对象（供明星产品点击进详情）
 
+  function fetchJson(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+
+  function loadFromSupabase(rowsKey) {
+    return fetchJson("data/supabase.json").then(function (cfg) {
+      if (!cfg || !cfg.url || !cfg.anon_key) throw new Error("未配置");
+      var base = cfg.url.replace(/\/+$/, "");
+      return fetchJson(base + "/rest/v1/db_store?select=key,data&key=eq." + rowsKey).then(function (rows) {
+        if (rows && rows.length && rows[0] && rows[0].data) return rows[0].data;
+        throw new Error("云端无数据");
+      });
+    });
+  }
+
   function load() {
-    // 先加载产品全量（建立名称索引），再加载机构数据
-    fetch("data/products.json").then(function (r) { return r.json(); }).then(function (prods) {
+    var prodP = loadFromSupabase("products").catch(function () { return fetchJson("data/products.json"); });
+    var instP = loadFromSupabase("institutions").catch(function () { return fetchJson("data/institutions.json"); });
+    var metaP = loadFromSupabase("meta").catch(function () { return fetchJson("data/meta.json"); });
+
+    prodP.then(function (prods) {
       prods.forEach(function (p) { productIndex[p.name] = p; });
-      return fetch("data/institutions.json");
-    }).then(function (r) { return r.json(); }).then(function (data) {
+      return instP;
+    }).then(function (data) {
       insts = data;
       var opts = insts.map(function (x) { return '<option value="' + esc(x.name) + '">' + esc(x.name) + "</option>"; }).join("");
       els.mgr.insertAdjacentHTML("beforeend", opts);
       renderOverview();
-      return fetch("data/meta.json");
-    }).then(function (r) { return r.json(); }).then(function (m) {
+      return metaP;
+    }).then(function (m) {
       els.meta.textContent = "更新于 " + (m.updated || "-") + " · " + (m.institution_count || 0) + " 家机构";
     }).catch(function (e) {
       els.ovTbody.innerHTML = '<tr><td colspan="8" class="empty">数据加载失败：' +

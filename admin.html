@@ -55,10 +55,31 @@
   </div>
 
   <div class="card">
-    <h2>④ 同步到公网（可选）</h2>
+    <h2>④ 同步到公网（Git 版本管理）</h2>
+    <label>本次版本说明（可选，将作为 Git 提交信息，留空自动生成）</label>
+    <input type="text" id="deploy-msg" placeholder="例：更新 9 月数据（2609 明细表）" style="width:100%;padding:8px 10px;border:1px solid #D8DCE3;border-radius:8px;font-size:13px;margin-bottom:12px;">
     <button class="btn" id="btn-deploy" style="background:#16A34A;">一键更新公网网址</button>
-    <div class="hint">把本地最新数据推送到公网固定网址，约 1 分钟后生效。<br>公网网址：https://shiweiwang0096.github.io/product-db/</div>
+    <div class="hint">把本地最新数据推送到公网固定网址，约 1 分钟后生效；每次部署自动生成一个 Git 版本（commit），可在下方查看历史。<br>公网网址：https://shiweiwang0096.github.io/product-db/</div>
     <div id="dresult"></div>
+  </div>
+
+  <div class="card">
+    <h2>⑤ 版本历史（GitHub）</h2>
+    <button class="btn" id="btn-versions" style="background:#6B7280;">刷新版本历史</button>
+    <div class="hint">每次「一键更新公网」都会在 GitHub 仓库留下一个历史版本（代码+数据备份），可按需回溯。</div>
+    <div id="vresult"></div>
+  </div>
+
+  <div class="card">
+    <h2>⑥ Supabase 云端数据库（可选）</h2>
+    <label>Project URL</label>
+    <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co" style="width:100%;padding:8px 10px;border:1px solid #D8DCE3;border-radius:8px;font-size:13px;margin-bottom:10px;">
+    <label>anon public key</label>
+    <input type="text" id="sb-key" placeholder="eyJhbGciOi..." style="width:100%;padding:8px 10px;border:1px solid #D8DCE3;border-radius:8px;font-size:13px;margin-bottom:12px;">
+    <button class="btn" id="btn-sb-save" style="background:#0E7490;">保存配置</button>
+    <button class="btn" id="btn-sb-sync" style="background:#0E7490;">同步当前数据到云端</button>
+    <div class="hint">配置后，每次更新数据可一键同步到 Supabase 云数据库；网站页面会自动优先从云端读取数据（云端数据库离线时自动回退本地文件）。<br>首次使用：注册 supabase.com → 新建项目 → SQL Editor 执行建表语句（见 README）→ 填上 Project URL 和 anon key。</div>
+    <div id="sbresult"></div>
   </div>
 
   <div class="card">
@@ -91,8 +112,15 @@
   var fDetails = document.getElementById("f-details");
   var btnDeploy = document.getElementById("btn-deploy");
   var dres = document.getElementById("dresult");
+  var deployMsg = document.getElementById("deploy-msg");
   var localFlag = ["localhost", "127.0.0.1"].indexOf(location.hostname) >= 0;
   var existingDetails = [];   // 已入库月度明细表（文件名列表）
+
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s === null || s === undefined ? "" : String(s);
+    return d.innerHTML;
+  }
 
   if (!localFlag) {
     // 公网访问：禁用上传与部署按钮
@@ -107,6 +135,17 @@
   function dshow(msg, ok) {
     dres.textContent = msg;
     dres.className = ok ? "ok" : "err";
+  }
+  function vshow(html) {
+    var v = document.getElementById("vresult");
+    v.innerHTML = html;
+    v.style.display = "block";
+    v.className = "";
+  }
+  function sbshow(msg, ok) {
+    var r = document.getElementById("sbresult");
+    r.textContent = msg;
+    r.className = ok ? "ok" : "err";
   }
 
   btn.addEventListener("click", function () {
@@ -152,18 +191,72 @@
     btnDeploy.disabled = true;
     btnDeploy.textContent = "部署中…（约 1~2 分钟）";
     dshow("正在推送到公网，请稍候…", true);
-    fetch("/api/deploy", { method: "POST" })
+    var msg = deployMsg.value.trim();
+    fetch("/api/deploy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg })
+    })
       .then(function (r) { return r.json().then(function (j) { return { s: r.ok, j: j }; }); })
       .then(function (o) {
         if (o.j.ok) {
-          dshow("✅ 已同步到公网！约 1 分钟后生效\n公网网址：https://shiweiwang0096.github.io/product-db/\n\n" + (o.j.output || ""), true);
+          dshow("✅ 已同步到公网！约 1 分钟后生效（Git 版本已记录）\n公网网址：https://shiweiwang0096.github.io/product-db/\n\n" + (o.j.output || ""), true);
         } else {
           dshow("❌ 部署失败：\n" + (o.j.msg || "") + "\n\n" + (o.j.output || ""), false);
         }
       })
       .catch(function (e) { dshow("请求失败：" + e, false); })
-      .finally(function () { btnDeploy.disabled = false; btnDeploy.textContent = "一键更新公网网址"; });
+      .finally(function () { btnDeploy.disabled = false; btnDeploy.textContent = "一键更新公网网址"; loadVersions(); });
   });
+
+  // ⑤ 版本历史
+  function loadVersions() {
+    fetch("/api/versions").then(function (r) { return r.json(); }).then(function (o) {
+      if (!o.ok) { vshow('<div class="err" style="padding:10px;">' + esc(o.msg || "获取失败") + "</div>"); return; }
+      var items = o.versions || [];
+      if (!items.length) { vshow('<div style="padding:10px;color:#6B7280;">暂无版本记录</div>'); return; }
+      var rows = items.map(function (v, i) {
+        var d = v.date ? new Date(v.date) : null;
+        var ds = d ? d.toLocaleString("zh-CN", { hour12: false }) : "";
+        return "<tr><td>" + (i === 0 ? "<b>最新</b>" : i) + "</td><td>" + ds + "</td><td>" + esc(v.message) + '</td><td><code style="font-size:12px;color:#2F6FED;">' + esc(v.sha) + "</code></td></tr>";
+      }).join("");
+      vshow('<table class="status" style="margin-top:8px;"><tr><th>版本</th><th>时间</th><th>说明</th><th>commit</th></tr>' + rows + "</table>");
+    }).catch(function (e) { vshow('<div class="err" style="padding:10px;">' + esc(e) + "</div>"); });
+  }
+  document.getElementById("btn-versions").addEventListener("click", loadVersions);
+  loadVersions();
+
+  // ⑥ Supabase
+  function loadSupaStatus() {
+    fetch("/api/supabase/status").then(function (r) { return r.json(); }).then(function (o) {
+      if (o.configured) {
+        sbshow("Supabase 已配置，状态：" + (o.ok ? "连接正常（已存 " + ((o.data || []).length || 0) + " 条记录）" : ("连接异常 code=" + o.code)), o.ok);
+      } else {
+        sbshow("尚未配置 Supabase。注册 supabase.com → 建项目 → SQL Editor 执行建表语句 → 填上方配置。", false);
+      }
+    }).catch(function () {});
+  }
+  document.getElementById("btn-sb-save").addEventListener("click", function () {
+    fetch("/api/supabase/save-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: document.getElementById("sb-url").value.trim(), anon_key: document.getElementById("sb-key").value.trim() })
+    }).then(function (r) { return r.json(); }).then(function (o) {
+      sbshow(o.msg, o.ok);
+      if (o.ok) loadSupaStatus();
+    }).catch(function (e) { sbshow("请求失败：" + e, false); });
+  });
+  document.getElementById("btn-sb-sync").addEventListener("click", function () {
+    sbshow("正在同步数据到 Supabase 云端…", true);
+    fetch("/api/supabase/sync", { method: "POST" }).then(function (r) { return r.json(); }).then(function (o) {
+      if (o.ok) {
+        sbshow("✅ 已同步到云端！" + (o.results || []).map(function (x) { return x.key + "(" + x.code + ")"; }).join("、"), true);
+      } else {
+        sbshow("❌ 同步失败：" + (o.msg || JSON.stringify(o.results || o)), false);
+      }
+    }).catch(function (e) { sbshow("请求失败：" + e, false); });
+  });
+  loadSupaStatus();
 
   function loadStatus() {
     fetch("/api/status").then(function (r) { return r.json(); }).then(function (s) {

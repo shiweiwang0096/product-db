@@ -328,16 +328,40 @@
       arr.map(function (v) { return '<option value="' + esc(v) + '">' + esc(v) + "</option>"; }).join("");
   }
 
-  /* ---------- 加载 ---------- */
+  /* ---------- 加载（Supabase 云端优先，失败回退本地 JSON） ---------- */
+  function fetchJson(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+
+  function loadFromSupabase(rowsKey) {
+    return fetchJson("data/supabase.json").then(function (cfg) {
+      if (!cfg || !cfg.url || !cfg.anon_key) throw new Error("未配置");
+      var base = cfg.url.replace(/\/+$/, "");
+      return fetchJson(base + "/rest/v1/db_store?select=key,data&key=eq." + rowsKey).then(function (rows) {
+        if (rows && rows.length && rows[0] && rows[0].data) return rows[0].data;
+        throw new Error("云端无数据");
+      });
+    });
+  }
+
   function load() {
-    fetch("data/products.json").then(function (r) { return r.json(); }).then(function (data) {
+    var p = loadFromSupabase("products").catch(function () {
+      return fetchJson("data/products.json");
+    });
+    p.then(function (data) {
       all = data;
       initFilters();
       applyFilter();
-      fetch("data/meta.json").then(function (r) { return r.json(); }).then(function (m) {
-        els.meta.textContent = "更新于 " + (m.updated || "-") + " · " + (m.product_count || 0) + " 只产品 · " + (m.institution_count || 0) + " 家机构";
-        els.sMgr.textContent = m.institution_count || "-";
-        els.sType.textContent = (m.product_types || []).join(" / ") || "-";
+      var m = loadFromSupabase("meta").catch(function () {
+        return fetchJson("data/meta.json");
+      });
+      m.then(function (meta) {
+        els.meta.textContent = "更新于 " + (meta.updated || "-") + " · " + (meta.product_count || 0) + " 只产品 · " + (meta.institution_count || 0) + " 家机构";
+        els.sMgr.textContent = meta.institution_count || "-";
+        els.sType.textContent = (meta.product_types || []).join(" / ") || "-";
       }).catch(function () { els.meta.textContent = "已加载产品数据"; });
     }).catch(function (e) {
       els.tbody.innerHTML = '<tr><td colspan="11" class="empty">数据加载失败：' + esc(e && e.message ? e.message : "请先运行处理管道生成 data/products.json") + "</td></tr>";
