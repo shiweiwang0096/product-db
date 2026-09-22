@@ -90,6 +90,13 @@
   var fDetails = document.getElementById("f-details");
   var btnDeploy = document.getElementById("btn-deploy");
   var dres = document.getElementById("dresult");
+  var localFlag = ["localhost", "127.0.0.1"].indexOf(location.hostname) >= 0;
+
+  if (!localFlag) {
+    // 公网访问：禁用上传与部署按钮
+    if (btn) btn.disabled = true;
+    if (btnDeploy) btnDeploy.disabled = true;
+  }
 
   function show(msg, ok) {
     res.textContent = msg;
@@ -123,6 +130,10 @@
   });
 
   btnDeploy.addEventListener("click", function () {
+    if (!localFlag) {
+      dshow("上传与部署功能仅在本机使用：请在本电脑运行 start_site.bat 后操作。公网网址只用于查看。", false);
+      return;
+    }
     btnDeploy.disabled = true;
     btnDeploy.textContent = "部署中…（约 1~2 分钟）";
     dshow("正在推送到公网，请稍候…", true);
