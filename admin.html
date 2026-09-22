@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据管理 · 组合类产品行业数据库</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif; background: #F4F3EE; color: #1A1B1C; font-size: 14px; line-height: 1.6; }
+  .wrap { max-width: 860px; margin: 30px auto; padding: 0 16px; }
+  h1 { font-size: 20px; color: #2F6FED; margin-bottom: 6px; }
+  .desc { color: #6B7280; font-size: 13px; margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid #E4E3DD; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin-bottom: 10px; border-left: 4px solid #2F6FED; padding-left: 10px; }
+  label { display: block; font-size: 13px; color: #6B7280; margin-bottom: 8px; }
+  input[type="file"] { display: block; width: 100%; padding: 10px; border: 1px dashed #B9C4D6; border-radius: 8px; background: #F8FAFF; font-size: 13px; margin-bottom: 14px; }
+  .btn { padding: 10px 22px; border: none; border-radius: 8px; background: #2F6FED; color: #fff; font-size: 14px; cursor: pointer; }
+  .btn:hover { opacity: .88; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .hint { font-size: 12px; color: #6B7280; margin-top: 8px; }
+  #result { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; white-space: pre-wrap; display: none; max-height: 320px; overflow: auto; }
+  #result.ok { background: #E7F6EF; color: #14532D; display: block; }
+  #result.err { background: #FDECEC; color: #7F1D1D; display: block; }
+  table.status { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+  table.status td, table.status th { padding: 6px 10px; border-bottom: 1px solid #f0efea; text-align: left; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; }
+  .badge.ok { background: #E7F6EF; color: #14532D; }
+  .badge.no { background: #FDECEC; color: #7F1D1D; }
+  .steps { font-size: 13px; color: #374151; margin: 8px 0 0; padding-left: 18px; }
+  .steps li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>数据管理 · 组合类产品行业数据库</h1>
+  <div class="desc">每月脚本更新 Excel 后，在此上传即可自动刷新网页数据（仅本机使用）。</div>
+
+  <div class="card">
+    <h2>① 上传总数据库（每月必须）</h2>
+    <label>选择「08产品库+机构规模 总数据库.xlsx」</label>
+    <input type="file" id="f-main" accept=".xlsx,.xls">
+  </div>
+
+  <div class="card">
+    <h2>② 上传月度产品明细表（可多选，如 2607、2608…）</h2>
+    <label>选择「2608产品明细表.xlsx」等（可按住 Ctrl 多选）</label>
+    <input type="file" id="f-details" accept=".xlsx,.xls" multiple>
+  </div>
+
+  <div class="card">
+    <h2>③ 开始更新</h2>
+    <button class="btn" id="btn-upload">上传并刷新网页数据</button>
+    <div class="hint">上传后自动运行处理管道（约 10~30 秒），完成后刷新网页即可看到新数据。</div>
+    <div id="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>当前数据状态</h2>
+    <table class="status">
+      <tr><th>项目</th><th>状态</th></tr>
+      <tr><td>总数据库 Excel</td><td id="st-main">加载中…</td></tr>
+      <tr><td>已入库月度明细表</td><td id="st-details">加载中…</td></tr>
+      <tr><td>网页数据更新时间</td><td id="st-meta">加载中…</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>使用说明</h2>
+    <ol class="steps">
+      <li>每月脚本产出 Excel 后，打开本页（通过网站顶部「数据管理」按钮进入）。</li>
+      <li>按上面 ①② 选择文件，点「上传并刷新网页数据」。</li>
+      <li>提示「完成」后，本地网页数据已更新；如需分享，再双击 <b>deploy.bat</b> 推送到公网固定网址。</li>
+      <li>公网网址（GitHub Pages）不支持上传；上传功能仅在本机（localhost）提供。</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById("btn-upload");
+  var res = document.getElementById("result");
+  var fMain = document.getElementById("f-main");
+  var fDetails = document.getElementById("f-details");
+
+  function show(msg, ok) {
+    res.textContent = msg;
+    res.className = ok ? "ok" : "err";
+  }
+
+  btn.addEventListener("click", function () {
+    var fd = new FormData();
+    var has = false;
+    if (fMain.files.length) { fd.append("main", fMain.files[0]); has = true; }
+    for (var i = 0; i < fDetails.files.length; i++) { fd.append("detail" + i, fDetails.files[i]); has = true; }
+    if (!has) { show("请先选择要上传的文件", false); return; }
+    btn.disabled = true;
+    btn.textContent = "上传处理中…";
+    show("正在上传并处理，请稍候（约 10~30 秒）…", true);
+    fetch("/api/upload", { method: "POST", body: fd })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.ok, j: j }; }); })
+      .then(function (o) {
+        if (o.j.ok) {
+          show("✅ 更新完成！已处理：\n" + (o.j.saved || []).join("\n") + "\n\n" + (o.j.output || ""), true);
+        } else {
+          show("❌ 更新失败：\n" + (o.j.msg || "") + "\n\n" + (o.j.output || ""), false);
+        }
+      })
+      .catch(function (e) { show("请求失败：" + e, false); })
+      .finally(function () { btn.disabled = false; btn.textContent = "上传并刷新网页数据"; loadStatus(); });
+  });
+
+  function loadStatus() {
+    fetch("/api/status").then(function (r) { return r.json(); }).then(function (s) {
+      document.getElementById("st-main").innerHTML = s.main_exists
+        ? '<span class="badge ok">已就位</span> ' + s.main_name
+        : '<span class="badge no">未上传</span>';
+      document.getElementById("st-details").textContent =
+        (s.details && s.details.length ? s.details.join("、") : "（无）");
+      var m = s.meta || {};
+      document.getElementById("st-meta").textContent = m.updated
+        ? m.updated + " · " + (m.product_count || 0) + " 只产品 / " + (m.institution_count || 0) + " 家机构"
+        : "尚无数据";
+    }).catch(function () {});
+  }
+
+  loadStatus();
+})();
+</script>
+</body>
+</html>

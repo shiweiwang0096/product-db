@@ -13,6 +13,7 @@
   <nav>
     <a href="index.html" class="active">产品库</a>
     <a href="institution.html">机构总结</a>
+    <a href="admin" id="btn-admin" class="admin-link">📤 数据管理</a>
   </nav>
   <div class="meta" id="meta">数据加载中…</div>
 </div>
@@ -78,5 +79,19 @@
 <script src="lib/echarts.min.js"></script>
 <script src="js/product_detail.js"></script>
 <script src="js/app.js"></script>
+<script>
+// 数据管理入口：仅本机(localhost)可用；公网访问时提示
+(function () {
+  var btn = document.getElementById("btn-admin");
+  if (!btn) return;
+  var local = ["localhost", "127.0.0.1"].indexOf(location.hostname) >= 0;
+  btn.addEventListener("click", function (e) {
+    if (!local) {
+      e.preventDefault();
+      alert("数据上传功能仅在本机使用：\n请在本电脑运行 start_site.bat 后，再打开本页点「数据管理」上传每月 Excel。\n公网网址只用于查看。");
+    }
+  });
+})();
+</script>
 </body>
 </html>
