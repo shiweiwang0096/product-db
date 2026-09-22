@@ -22,15 +22,17 @@
 
   <div class="card">
     <div class="filters">
-      <label>产品类型
-        <select id="f-type"><option value="">全部</option></select>
-      </label>
+      <div class="flt-block">
+        <span class="flt-label">产品类型（可多选，不选=全部）</span>
+        <div class="chk-group" id="f-type"></div>
+      </div>
       <label>产品管理人
         <select id="f-mgr"><option value="">全部</option></select>
       </label>
-      <label>产品类别标识
-        <select id="f-cat"><option value="">全部</option></select>
-      </label>
+      <div class="flt-block">
+        <span class="flt-label">产品类别标识（可多选，不选=全部）</span>
+        <div class="chk-group" id="f-cat"></div>
+      </div>
       <label>关键词搜索（产品名）
         <input id="f-keyword" placeholder="输入产品名称关键词，回车定位高亮（不筛选）" />
       </label>

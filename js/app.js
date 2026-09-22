@@ -60,13 +60,21 @@
     return d.innerHTML;
   }
 
-  /* ---------- 筛选 ---------- */
+  /* ---------- 筛选（类型/类别标识支持多选：勾选=匹配任一，不勾选=全部） ---------- */
+  function getCheckedSet(container) {
+    var s = new Set();
+    container.querySelectorAll("input:checked").forEach(function (cb) { s.add(cb.value); });
+    return s;
+  }
+
   function applyFilter() {
-    var t = els.type.value, m = els.mgr.value, c = els.cat.value;
+    var ts = getCheckedSet(els.type);
+    var m = els.mgr.value;
+    var cs = getCheckedSet(els.cat);
     filtered = all.filter(function (p) {
-      if (t && p.type !== t) return false;
+      if (ts.size && !ts.has(p.type)) return false;
       if (m && p.mgr !== m) return false;
-      if (c && p.cat !== c) return false;
+      if (cs.size && !cs.has(p.cat)) return false;
       return true;
     });
     page = 1;
@@ -243,17 +251,15 @@
     });
   }
 
-  /* ---------- 筛选器初始化（需求3：类型固定4类） ---------- */
+  /* ---------- 筛选器初始化（类型/类别标识：固定4类 + 多选） ---------- */
   function initFilters() {
-    var mgrs = {}, cats = {};
+    var mgrs = {};
     all.forEach(function (p) {
       if (p.mgr) mgrs[p.mgr] = 1;
-      if (p.cat) cats[p.cat] = 1;
     });
-    fillSelect(els.type, TYPES_FIXED);
+    renderCheckboxes(els.type, TYPES_FIXED);
     fillSelect(els.mgr, Object.keys(mgrs).sort(function (a, b) { return a.localeCompare(b, "zh-CN"); }));
-    fillSelect(els.cat, Object.keys(cats).sort());
-    [els.type, els.mgr, els.cat].forEach(function (s) { s.addEventListener("change", applyFilter); });
+    renderCheckboxes(els.cat, TYPES_FIXED);
 
     // 关键词：回车定位（需求4），input 清空时恢复
     els.kw.addEventListener("keydown", function (e) {
@@ -272,7 +278,9 @@
     });
 
     els.reset.addEventListener("click", function () {
-      els.type.value = els.mgr.value = els.cat.value = "";
+      clearCheckboxes(els.type);
+      els.mgr.value = "";
+      clearCheckboxes(els.cat);
       els.kw.value = "";
       locateKw = "";
       els.hint.style.display = "none";
@@ -280,6 +288,19 @@
       document.querySelectorAll("th .arrow").forEach(function (a) { a.textContent = ""; });
       applyFilter();
     });
+  }
+
+  function renderCheckboxes(container, arr) {
+    container.innerHTML = arr.map(function (v) {
+      return '<label><input type="checkbox" value="' + esc(v) + '"> ' + esc(v) + "</label>";
+    }).join("");
+    container.querySelectorAll("input").forEach(function (cb) {
+      cb.addEventListener("change", applyFilter);
+    });
+  }
+
+  function clearCheckboxes(container) {
+    container.querySelectorAll("input").forEach(function (cb) { cb.checked = false; });
   }
 
   function fillSelect(sel, arr) {
