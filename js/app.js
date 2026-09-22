@@ -263,6 +263,7 @@
       if (p.mgr) mgrs[p.mgr] = 1;
     });
     fillSelect(els.mgr, Object.keys(mgrs).sort(function (a, b) { return a.localeCompare(b, "zh-CN"); }));
+    els.mgr.addEventListener("change", applyFilter);
 
     // 多选下拉：展开/收起 / 勾选即筛选 / 清空
     els.catBtn.addEventListener("click", function (e) {
