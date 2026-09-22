@@ -75,8 +75,9 @@
     <h2>使用说明</h2>
     <ol class="steps">
       <li>每月脚本产出 Excel 后，打开本页（通过网站顶部「数据管理」按钮进入）。</li>
-      <li>按上面 ①② 选择文件，点「③ 上传并刷新网页数据」。</li>
-      <li>提示「完成」后，本地数据已更新；如需同步给其他人，点「④ 一键更新公网网址」。</li>
+      <li>总数据库：每次上传的都是最新版本，自动<b>覆盖旧的总数据库</b>（只保留最新一份）。</li>
+      <li>月度明细表：历史月份<b>永久保留</b>——已传过的月份（见「当前数据状态」列表）不用重复上传，只需上传<b>新增月份</b>；若重复上传同名文件，则自动覆盖该月份旧版本。</li>
+      <li>选择文件后点「③ 上传并刷新网页数据」；如需同步给其他人，再点「④ 一键更新公网网址」。</li>
       <li>公网网址（GitHub Pages）不支持上传；上传与部署功能仅在本机（localhost）提供。</li>
     </ol>
   </div>
@@ -91,6 +92,7 @@
   var btnDeploy = document.getElementById("btn-deploy");
   var dres = document.getElementById("dresult");
   var localFlag = ["localhost", "127.0.0.1"].indexOf(location.hostname) >= 0;
+  var existingDetails = [];   // 已入库月度明细表（文件名列表）
 
   if (!localFlag) {
     // 公网访问：禁用上传与部署按钮
@@ -110,12 +112,25 @@
   btn.addEventListener("click", function () {
     var fd = new FormData();
     var has = false;
+    var newMonths = [], overwriteMonths = [];
     if (fMain.files.length) { fd.append("main", fMain.files[0]); has = true; }
-    for (var i = 0; i < fDetails.files.length; i++) { fd.append("detail" + i, fDetails.files[i]); has = true; }
+    for (var i = 0; i < fDetails.files.length; i++) {
+      fd.append("detail" + i, fDetails.files[i]); has = true;
+      var nm = fDetails.files[i].name;
+      if (existingDetails.indexOf(nm) >= 0) { overwriteMonths.push(nm.replace("产品明细表.xlsx", "")); }
+      else { newMonths.push(nm.replace("产品明细表.xlsx", "")); }
+    }
     if (!has) { show("请先选择要上传的文件", false); return; }
+    var tip = "正在上传并处理，请稍候（约 10~30 秒）…";
+    if (newMonths.length || overwriteMonths.length) {
+      var parts = [];
+      if (newMonths.length) parts.push("新增月份：" + newMonths.join("、"));
+      if (overwriteMonths.length) parts.push("覆盖已存在月份：" + overwriteMonths.join("、"));
+      tip += "\n本次明细表：" + parts.join("；");
+    }
     btn.disabled = true;
     btn.textContent = "上传处理中…";
-    show("正在上传并处理，请稍候（约 10~30 秒）…", true);
+    show(tip, true);
     fetch("/api/upload", { method: "POST", body: fd })
       .then(function (r) { return r.json().then(function (j) { return { s: r.ok, j: j }; }); })
       .then(function (o) {
@@ -152,11 +167,12 @@
 
   function loadStatus() {
     fetch("/api/status").then(function (r) { return r.json(); }).then(function (s) {
+      existingDetails = s.details || [];
       document.getElementById("st-main").innerHTML = s.main_exists
         ? '<span class="badge ok">已就位</span> ' + s.main_name
         : '<span class="badge no">未上传</span>';
       document.getElementById("st-details").textContent =
-        (s.details && s.details.length ? s.details.join("、") : "（无）");
+        (existingDetails.length ? existingDetails.join("、") : "（无）");
       var m = s.meta || {};
       document.getElementById("st-meta").textContent = m.updated
         ? m.updated + " · " + (m.product_count || 0) + " 只产品 / " + (m.institution_count || 0) + " 家机构"
