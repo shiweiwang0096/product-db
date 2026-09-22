@@ -55,6 +55,13 @@
   </div>
 
   <div class="card">
+    <h2>④ 同步到公网（可选）</h2>
+    <button class="btn" id="btn-deploy" style="background:#16A34A;">一键更新公网网址</button>
+    <div class="hint">把本地最新数据推送到公网固定网址，约 1 分钟后生效。<br>公网网址：https://shiweiwang0096.github.io/product-db/</div>
+    <div id="dresult"></div>
+  </div>
+
+  <div class="card">
     <h2>当前数据状态</h2>
     <table class="status">
       <tr><th>项目</th><th>状态</th></tr>
@@ -68,9 +75,9 @@
     <h2>使用说明</h2>
     <ol class="steps">
       <li>每月脚本产出 Excel 后，打开本页（通过网站顶部「数据管理」按钮进入）。</li>
-      <li>按上面 ①② 选择文件，点「上传并刷新网页数据」。</li>
-      <li>提示「完成」后，本地网页数据已更新；如需分享，再双击 <b>deploy.bat</b> 推送到公网固定网址。</li>
-      <li>公网网址（GitHub Pages）不支持上传；上传功能仅在本机（localhost）提供。</li>
+      <li>按上面 ①② 选择文件，点「③ 上传并刷新网页数据」。</li>
+      <li>提示「完成」后，本地数据已更新；如需同步给其他人，点「④ 一键更新公网网址」。</li>
+      <li>公网网址（GitHub Pages）不支持上传；上传与部署功能仅在本机（localhost）提供。</li>
     </ol>
   </div>
 </div>
@@ -81,10 +88,16 @@
   var res = document.getElementById("result");
   var fMain = document.getElementById("f-main");
   var fDetails = document.getElementById("f-details");
+  var btnDeploy = document.getElementById("btn-deploy");
+  var dres = document.getElementById("dresult");
 
   function show(msg, ok) {
     res.textContent = msg;
     res.className = ok ? "ok" : "err";
+  }
+  function dshow(msg, ok) {
+    dres.textContent = msg;
+    dres.className = ok ? "ok" : "err";
   }
 
   btn.addEventListener("click", function () {
@@ -107,6 +120,23 @@
       })
       .catch(function (e) { show("请求失败：" + e, false); })
       .finally(function () { btn.disabled = false; btn.textContent = "上传并刷新网页数据"; loadStatus(); });
+  });
+
+  btnDeploy.addEventListener("click", function () {
+    btnDeploy.disabled = true;
+    btnDeploy.textContent = "部署中…（约 1~2 分钟）";
+    dshow("正在推送到公网，请稍候…", true);
+    fetch("/api/deploy", { method: "POST" })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.ok, j: j }; }); })
+      .then(function (o) {
+        if (o.j.ok) {
+          dshow("✅ 已同步到公网！约 1 分钟后生效\n公网网址：https://shiweiwang0096.github.io/product-db/\n\n" + (o.j.output || ""), true);
+        } else {
+          dshow("❌ 部署失败：\n" + (o.j.msg || "") + "\n\n" + (o.j.output || ""), false);
+        }
+      })
+      .catch(function (e) { dshow("请求失败：" + e, false); })
+      .finally(function () { btnDeploy.disabled = false; btnDeploy.textContent = "一键更新公网网址"; });
   });
 
   function loadStatus() {
