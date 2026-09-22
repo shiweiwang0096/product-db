@@ -19,7 +19,28 @@
     starScale: document.getElementById("d-star-scale"),
     starPerf: document.getElementById("d-star-perf"),
     keyChg: document.getElementById("d-keychg"),
+    tStart: document.getElementById("t-start"),
+    tEnd: document.getElementById("t-end"),
+    tReset: document.getElementById("t-reset"),
+    pMonth: document.getElementById("p-month"),
   };
+
+  /* 月份升序比较（格式如 2608 / 2026-08，字符串比较即可） */
+  function monthAsc(a, b) { return a.month < b.month ? -1 : a.month > b.month ? 1 : 0; }
+
+  /* 填充月份选择控件（切换机构时重建） */
+  function fillMonthControls() {
+    var all = (current.months || []).slice().sort(monthAsc);
+    var opts = '<option value="">全部</option>' + all.map(function (m) {
+      return '<option value="' + esc(m.month) + '">' + esc(m.month) + "</option>";
+    }).join("");
+    els.tStart.innerHTML = opts;
+    els.tEnd.innerHTML = opts;
+    els.pMonth.innerHTML = all.map(function (m) {
+      return '<option value="' + esc(m.month) + '">' + esc(m.month) + "</option>";
+    }).join("");
+    if (all.length) els.pMonth.value = all[all.length - 1].month; // 默认最新月份
+  }
 
   function fmt(v, digits) {
     if (v === null || v === undefined || isNaN(v)) return "-";
@@ -90,6 +111,7 @@
         '</div><div class="sub">' + (k.sub || "&nbsp;") + "</div></div>";
     }).join("");
 
+    fillMonthControls();
     renderTrend();
     renderPie();
     renderProdLists();
@@ -99,7 +121,14 @@
     var box = document.getElementById("c-trend");
     var chart = echarts.getInstanceByDom(box) || echarts.init(box);
     charts.push(chart);
-    var months = current.months || [];
+    // 升序：从左（早）到右（晚），并应用起止月份筛选
+    var all = (current.months || []).slice().sort(monthAsc);
+    var s = els.tStart.value, e = els.tEnd.value;
+    var months = all.filter(function (m) {
+      if (s && m.month < s) return false;
+      if (e && m.month > e) return false;
+      return true;
+    });
     var x = months.map(function (m) { return m.month; });
     var total = months.map(function (m) { return m.total; });
     var fixed = months.map(function (m) { return m.fixed; });
@@ -123,33 +152,39 @@
   }
 
   function renderPie() {
-    var w = current.weighted || {};
-    var pieData = [];
-    Object.keys(w).forEach(function (t) {
-      var s = w[t].scale;
-      if (s !== null && s !== undefined) pieData.push({ name: t, value: s });
-    });
-    // 无加权数据时用月度最新构成
-    if (!pieData.length) {
-      var m = (current.months || []).slice(-1)[0];
-      if (m) {
-        [["固定收益类", m.fixed], ["混合类", m.mixed], ["权益类", m.equity]].forEach(function (pair) {
-          if (pair[1] !== null && pair[1] !== undefined) pieData.push({ name: pair[0], value: pair[1] });
-        });
-      }
-    }
+    // 按所选月份展示规模构成（固定/混合/权益），默认最新月份
+    var all = (current.months || []).slice().sort(monthAsc);
+    var sel = els.pMonth.value || (all.length ? all[all.length - 1].month : "");
+    var m = null;
+    for (var i = 0; i < all.length; i++) { if (all[i].month === sel) { m = all[i]; break; } }
     var box = document.getElementById("c-pie");
     var chart = echarts.getInstanceByDom(box) || echarts.init(box);
     charts.push(chart);
+    var pieData = [];
+    if (m) {
+      [["固定收益类", m.fixed], ["混合类", m.mixed], ["权益类", m.equity]].forEach(function (pair) {
+        if (pair[1] !== null && pair[1] !== undefined) pieData.push({ name: pair[0], value: pair[1] });
+      });
+    }
+    if (!pieData.length) {
+      chart.clear();
+      chart.setOption({
+        backgroundColor: "transparent",
+        title: { text: "该月暂无构成数据", left: "center", top: "middle", textStyle: { fontSize: 13, color: "#9CA3AF" } },
+        series: [],
+      });
+      return;
+    }
     var colors = ["#2F6FED", "#8BC8EA", "#E1B98F", "#C9A7E8", "#94D8C3"];
     chart.setOption({
       backgroundColor: "transparent",
       tooltip: { trigger: "item", confine: true, formatter: "{b}: {c} 亿元 ({d}%)" },
       legend: { bottom: 0 },
+      title: { text: sel + " 构成", left: "center", top: 4, textStyle: { fontSize: 13, color: "#6B7280", fontWeight: "normal" } },
       series: [{
         type: "pie",
         radius: ["38%", "68%"],
-        center: ["50%", "46%"],
+        center: ["50%", "50%"],
         data: pieData,
         label: { formatter: "{b}\n{c} 亿元", fontSize: 11 },
         itemStyle: { borderColor: "#fff", borderWidth: 2 },
@@ -210,6 +245,17 @@
   });
   els.reset.addEventListener("click", backToList);
   els.back.addEventListener("click", backToList);
+
+  // 趋势图时间筛选
+  els.tStart.addEventListener("change", renderTrend);
+  els.tEnd.addEventListener("change", renderTrend);
+  els.tReset.addEventListener("click", function () {
+    els.tStart.value = "";
+    els.tEnd.value = "";
+    renderTrend();
+  });
+  // 饼图月份选择
+  els.pMonth.addEventListener("change", renderPie);
 
   /* ---------- 加载（Supabase 云端优先，失败回退本地 JSON） ---------- */
   var productIndex = {};   // 产品名 → 完整产品对象（供明星产品点击进详情）

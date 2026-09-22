@@ -60,10 +60,24 @@
       <div class="chart-grid">
         <div class="chart-box">
           <h3>月度总规模趋势（亿元）</h3>
+          <div class="chart-filters">
+            <label>开始月份
+              <select id="t-start"><option value="">最早</option></select>
+            </label>
+            <label>结束月份
+              <select id="t-end"><option value="">最新</option></select>
+            </label>
+            <button class="btn ghost btn-xs" id="t-reset">重置时间范围</button>
+          </div>
           <div class="chart" id="c-trend"></div>
         </div>
         <div class="chart-box">
-          <h3>最新规模构成（按产品类型，亿元）</h3>
+          <h3>规模构成（按产品类型，亿元）</h3>
+          <div class="chart-filters">
+            <label>展示月份
+              <select id="p-month"></select>
+            </label>
+          </div>
           <div class="chart" id="c-pie"></div>
         </div>
       </div>
