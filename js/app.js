@@ -340,6 +340,7 @@
     return fetchJson("data/supabase.json").then(function (cfg) {
       if (!cfg || !cfg.url || !cfg.anon_key) throw new Error("未配置");
       var base = cfg.url.replace(/\/+$/, "");
+      base = base.indexOf("/rest/v1") >= 0 ? base.slice(0, base.indexOf("/rest/v1")) : base;
       return fetchJson(base + "/rest/v1/db_store?select=key,data&key=eq." + rowsKey).then(function (rows) {
         if (rows && rows.length && rows[0] && rows[0].data) return rows[0].data;
         throw new Error("云端无数据");
