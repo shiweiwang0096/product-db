@@ -12,9 +12,10 @@
   var TYPES_FIXED = ["固定收益类", "混合类", "权益类", "货币类"];  // 需求3：固定4类可选
 
   var els = {
-    type: document.getElementById("f-type"),
     mgr: document.getElementById("f-mgr"),
-    cat: document.getElementById("f-cat"),
+    catBtn: document.getElementById("cat-btn"),
+    catPanel: document.getElementById("cat-panel"),
+    catDrop: document.getElementById("cat-drop"),
     kw: document.getElementById("f-keyword"),
     reset: document.getElementById("btn-reset"),
     hint: document.getElementById("search-hint"),
@@ -60,21 +61,25 @@
     return d.innerHTML;
   }
 
-  /* ---------- 筛选（类型/类别标识支持多选：勾选=匹配任一，不勾选=全部） ---------- */
-  function getCheckedSet(container) {
+  /* ---------- 筛选（产品类别标识：下拉多选，勾选=匹配任一，不勾选=全部） ---------- */
+  function getCheckedSet() {
     var s = new Set();
-    container.querySelectorAll("input:checked").forEach(function (cb) { s.add(cb.value); });
+    els.catPanel.querySelectorAll("input:checked").forEach(function (cb) { s.add(cb.value); });
     return s;
   }
 
+  function updateCatBtn() {
+    var sel = [];
+    els.catPanel.querySelectorAll("input:checked").forEach(function (cb) { sel.push(cb.value); });
+    els.catBtn.textContent = sel.length ? sel.join("、") : "全部";
+  }
+
   function applyFilter() {
-    var ts = getCheckedSet(els.type);
+    var cs = getCheckedSet();
     var m = els.mgr.value;
-    var cs = getCheckedSet(els.cat);
     filtered = all.filter(function (p) {
-      if (ts.size && !ts.has(p.type)) return false;
-      if (m && p.mgr !== m) return false;
       if (cs.size && !cs.has(p.cat)) return false;
+      if (m && p.mgr !== m) return false;
       return true;
     });
     page = 1;
@@ -251,15 +256,43 @@
     });
   }
 
-  /* ---------- 筛选器初始化（类型/类别标识：固定4类 + 多选） ---------- */
+  /* ---------- 筛选器初始化（产品类别标识：固定4类下拉多选） ---------- */
   function initFilters() {
     var mgrs = {};
     all.forEach(function (p) {
       if (p.mgr) mgrs[p.mgr] = 1;
     });
-    renderCheckboxes(els.type, TYPES_FIXED);
     fillSelect(els.mgr, Object.keys(mgrs).sort(function (a, b) { return a.localeCompare(b, "zh-CN"); }));
-    renderCheckboxes(els.cat, TYPES_FIXED);
+
+    // 多选下拉：展开/收起 / 勾选即筛选 / 清空
+    els.catBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var open = els.catPanel.classList.toggle("open");
+      els.catBtn.classList.toggle("open", open);
+    });
+    els.catPanel.querySelectorAll("input").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        updateCatBtn();
+        applyFilter();
+      });
+    });
+    var clearBtn = document.createElement("button");
+    clearBtn.type = "button";
+    clearBtn.className = "ms-clear";
+    clearBtn.textContent = "清空选择";
+    clearBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      els.catPanel.querySelectorAll("input").forEach(function (cb) { cb.checked = false; });
+      updateCatBtn();
+      applyFilter();
+    });
+    els.catPanel.appendChild(clearBtn);
+    document.addEventListener("click", function (e) {
+      if (!els.catDrop.contains(e.target)) {
+        els.catPanel.classList.remove("open");
+        els.catBtn.classList.remove("open");
+      }
+    });
 
     // 关键词：回车定位（需求4），input 清空时恢复
     els.kw.addEventListener("keydown", function (e) {
@@ -278,9 +311,9 @@
     });
 
     els.reset.addEventListener("click", function () {
-      clearCheckboxes(els.type);
       els.mgr.value = "";
-      clearCheckboxes(els.cat);
+      els.catPanel.querySelectorAll("input").forEach(function (cb) { cb.checked = false; });
+      updateCatBtn();
       els.kw.value = "";
       locateKw = "";
       els.hint.style.display = "none";
@@ -288,19 +321,6 @@
       document.querySelectorAll("th .arrow").forEach(function (a) { a.textContent = ""; });
       applyFilter();
     });
-  }
-
-  function renderCheckboxes(container, arr) {
-    container.innerHTML = arr.map(function (v) {
-      return '<label><input type="checkbox" value="' + esc(v) + '"> ' + esc(v) + "</label>";
-    }).join("");
-    container.querySelectorAll("input").forEach(function (cb) {
-      cb.addEventListener("change", applyFilter);
-    });
-  }
-
-  function clearCheckboxes(container) {
-    container.querySelectorAll("input").forEach(function (cb) { cb.checked = false; });
   }
 
   function fillSelect(sel, arr) {

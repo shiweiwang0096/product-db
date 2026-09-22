@@ -22,16 +22,20 @@
 
   <div class="card">
     <div class="filters">
-      <div class="flt-block">
-        <span class="flt-label">产品类型（可多选，不选=全部）</span>
-        <div class="chk-group" id="f-type"></div>
-      </div>
       <label>产品管理人
         <select id="f-mgr"><option value="">全部</option></select>
       </label>
       <div class="flt-block">
-        <span class="flt-label">产品类别标识（可多选，不选=全部）</span>
-        <div class="chk-group" id="f-cat"></div>
+        <span class="flt-label">产品类别标识（可多选）</span>
+        <div class="ms-wrap" id="cat-drop">
+          <button type="button" class="ms-btn" id="cat-btn">全部</button>
+          <div class="ms-panel" id="cat-panel">
+            <label><input type="checkbox" value="固定收益类"> 固定收益类</label>
+            <label><input type="checkbox" value="混合类"> 混合类</label>
+            <label><input type="checkbox" value="权益类"> 权益类</label>
+            <label><input type="checkbox" value="货币类"> 货币类</label>
+          </div>
+        </div>
       </div>
       <label>关键词搜索（产品名）
         <input id="f-keyword" placeholder="输入产品名称关键词，回车定位高亮（不筛选）" />

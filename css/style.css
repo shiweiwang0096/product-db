@@ -79,6 +79,41 @@ body {
   font-size: 13px; color: var(--text); cursor: pointer; flex-direction: row;
 }
 .chk-group input { accent-color: var(--accent); }
+/* 多选下拉（产品类别标识） */
+.ms-wrap { position: relative; min-width: 200px; }
+.ms-btn {
+  width: 100%; text-align: left;
+  padding: 8px 30px 8px 10px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: #fff; color: var(--text); font-size: 13px;
+  cursor: pointer; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ms-btn::after {
+  content: "▾"; position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%); color: var(--text2); font-size: 11px;
+}
+.ms-btn.open::after { content: "▴"; }
+.ms-panel {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
+  min-width: 100%; background: #fff; border: 1px solid var(--border);
+  border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.08);
+  padding: 6px 4px;
+}
+.ms-panel.open { display: block; }
+.ms-panel label {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px; border-radius: 6px;
+  font-size: 13px; color: var(--text); cursor: pointer;
+}
+.ms-panel label:hover { background: #f5f6fa; }
+.ms-panel input { accent-color: var(--accent); }
+.ms-clear {
+  display: block; width: calc(100% - 8px); margin: 4px;
+  padding: 5px 0; text-align: center;
+  border: 1px dashed var(--border); border-radius: 6px;
+  background: #fafaf8; color: var(--text2); font-size: 12px; cursor: pointer;
+}
+.ms-clear:hover { color: var(--accent); border-color: var(--accent); }
 .filters select, .filters input {
   min-width: 150px;
   padding: 8px 10px;
